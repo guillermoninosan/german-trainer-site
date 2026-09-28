@@ -636,6 +636,9 @@ function feedback(it){
     h += `<div class="why"><b>Rule:</b> ${esc(cat.tip)}</div>`;
     if (!ok) h += `<div class="why muted">Other orders can exist, but this is the most natural one.</div>`;
     h += `<div style="margin-top:8px">${spk(sentence(r.alts[0], r.p).replace(/[.?!]$/, ''))}</div>`;
+  } else if (it.type === 'word') {
+    const w = it.ref; h += `<div class="ans">${ok ? 'Richtig!' : 'Correct:'} ${esc(w.de)} = ${esc(w.en)}</div>`;
+    h += `<div style="margin-top:8px">${spk(w.de)}</div>`;
   } else if (it.type === 'gram') {
     h += `<div class="ans">${ok ? 'Richtig!' : 'Correct: ' + esc(it.ref.a)}</div><div class="why">${esc(it.ref.why)}</div>`;
     if (!ok && CASECATS.indexOf(it.ref.cat) >= 0) h += `<div class="why"><b>Coat check:</b> 1) the doer? Nominative, no change. 2) wen oder was? Only der becomes den. 3) after mit, bei, aus, nach, seit, von, zu: dem / der / dem / den.</div>`;
@@ -732,6 +735,22 @@ function runView(){
     it.order.forEach(o => {
       let cls = 'opt';
       if (run.answered) { if (o === q.a) cls += ' right'; else if (o === run.picked) cls += ' wrong'; }
+      h += `<button class="${cls}" data-act="mc" data-v="${esc(o)}" ${run.answered ? 'disabled' : ''}>${esc(o)}</button>`;
+    });
+    h += '</div>';
+  } else if (it.type === 'word') {
+    // Vocabulary item inside Daily mix / a single-item session (not the Match mode
+    // board - that's matchRunView() above, only used when mode === 'word' itself).
+    // Multiple-choice so it stays auto-graded and one-tap, like the rest of mix.
+    const w = it.ref;
+    if (!it.opts) {
+      const distract = shuffle(DATA.words.filter(x => x.en !== w.en)).slice(0, 3).map(x => x.en);
+      it.opts = shuffle([w.en].concat(distract));
+    }
+    h += `<span class="tag">Vocabulary</span><span class="tag">${esc((LTITLE[w.lesson] || '').split(' · ')[0])}</span><div class="big">${esc(w.de)}</div><div class="opts">`;
+    it.opts.forEach(o => {
+      let cls = 'opt';
+      if (run.answered) { if (o === w.en) cls += ' right'; else if (o === run.picked) cls += ' wrong'; }
       h += `<button class="${cls}" data-act="mc" data-v="${esc(o)}" ${run.answered ? 'disabled' : ''}>${esc(o)}</button>`;
     });
     h += '</div>';
@@ -908,7 +927,7 @@ app.addEventListener('click', e => {
     case 'start': case 'again': startRun(); break;
     case 'quit': view = run && run.total ? 'end' : 'home'; render(); break;
     case 'pick': if (!run.answered) { run.picked = v; answer(v === cur().ref.art, v); } break;
-    case 'mc': if (!run.answered) { run.picked = v; answer(v === cur().ref.a, v); } break;
+    case 'mc': if (!run.answered) { const c = cur(), correct = c.type === 'word' ? c.ref.en : c.ref.a; run.picked = v; answer(v === correct, v); } break;
     case 'check': check(); break;
     case 'next': next(); break;
     case 'mtap': {
