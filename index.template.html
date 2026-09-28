@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="German Trainer">
+<meta name="theme-color" content="#1f5fbf">
+<meta name="description" content="Guille's personal German trainer for life in Zurich.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>German Trainer</title>
+<style>
+:root{
+  --bg:#f6f5f1; --card:#ffffff; --ink:#1f2328; --muted:#6a7078; --line:#e2e0d8;
+  --accent:#1f5fbf; --accent-ink:#ffffff; --accent-soft:#e6eefb;
+  --good:#1a7f45; --good-soft:#e2f4ea; --bad:#b3261e; --bad-soft:#fbe7e5; --warn:#8a5a00; --warn-soft:#fdf1d8;
+  --irr:#b3261e;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171a; --card:#1e2126; --ink:#eceef1; --muted:#9aa1ab; --line:#30353c;
+    --accent:#6ea2f5; --accent-ink:#0d1b33; --accent-soft:#1d2b45;
+    --good:#5fd08b; --good-soft:#173324; --bad:#ff8a80; --bad-soft:#3b1c1a; --warn:#f3c56b; --warn-soft:#3a2f14;
+    --irr:#ff8a80;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171a; --card:#1e2126; --ink:#eceef1; --muted:#9aa1ab; --line:#30353c;
+  --accent:#6ea2f5; --accent-ink:#0d1b33; --accent-soft:#1d2b45;
+  --good:#5fd08b; --good-soft:#173324; --bad:#ff8a80; --bad-soft:#3b1c1a; --warn:#f3c56b; --warn-soft:#3a2f14;
+  --irr:#ff8a80;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding:0 16px env(safe-area-inset-bottom)}
+#wrap{max-width:720px;margin:0 auto;padding:14px 0 60px}
+header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+header h1{font-size:20px;margin:0;flex:1;letter-spacing:.2px}
+header .sub{font-size:13px;color:var(--muted);font-weight:400;display:block}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn{min-height:50px;padding:10px 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:600}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.small{min-height:38px;padding:6px 12px;font-size:15px;border-radius:10px}
+.btn.ghost{background:transparent}
+.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.45}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:460px){.tiles{grid-template-columns:1fr}}
+.tile{text-align:left;padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--card);min-height:96px;display:block;width:100%}
+.tile b{display:block;font-size:18px}
+.tile span{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+.tile .due{display:inline-block;margin-top:8px;font-size:13px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:2px 9px;border-radius:99px}
+.hero{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.hero span{color:inherit;opacity:.85}
+.hero .due{background:rgba(255,255,255,.22);color:inherit}
+.stats{display:flex;gap:10px;margin-bottom:14px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.stat b{font-size:22px;display:block;line-height:1.1}
+.stat span{font-size:12px;color:var(--muted)}
+h2{font-size:18px;margin:0 0 8px}
+.muted{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+.chip{min-height:40px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-size:15px}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-right:8px}
+.tag.pill{background:var(--warn-soft);color:var(--warn);padding:1px 8px;border-radius:99px;text-transform:none;letter-spacing:0}
+.big{font-size:34px;font-weight:700;margin:10px 0 4px;line-height:1.15;word-break:break-word}
+.sub2{color:var(--muted);font-size:18px;margin-bottom:12px}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.opts{display:grid;gap:10px;margin-top:10px}
+.opt{min-height:54px;text-align:left;padding:10px 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:18px}
+.opt.right{background:var(--good-soft);border-color:var(--good);color:var(--good);font-weight:700}
+.opt.wrong{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.art{min-height:64px;font-size:22px;font-weight:700;text-align:center}
+.art.der{border-bottom:4px solid #2f6fde}.art.die{border-bottom:4px solid #d9455f}.art.das{border-bottom:4px solid #2e9e5b}
+input[type=text],textarea{width:100%;font:inherit;font-size:20px;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+input[type=text]:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{font-size:14px;min-height:110px;font-family:ui-monospace,Menlo,monospace}
+.fb{margin-top:14px;padding:14px;border-radius:12px}
+.fb.good{background:var(--good-soft);color:var(--ink);border-left:5px solid var(--good)}
+.fb.bad{background:var(--bad-soft);color:var(--ink);border-left:5px solid var(--bad)}
+.fb .ans{font-size:22px;font-weight:700}
+.fb .why{margin-top:6px;font-size:15px}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:2px 0 14px}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .25s}
+table.forms{border-collapse:collapse;width:100%;margin:6px 0 4px}
+table.forms td{padding:8px 6px;border-bottom:1px solid var(--line);font-size:18px}
+table.forms td:first-child{color:var(--muted);width:34%;font-size:15px}
+table.forms tr.hl td{background:var(--accent-soft)}
+.irr{color:var(--irr);font-weight:700}
+.vlist{display:grid;gap:8px;margin-top:8px}
+.vitem{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);min-height:50px}
+.vitem small{color:var(--muted)}
+.sand{font-family:ui-monospace,Menlo,monospace;font-size:15px;background:var(--bg);border-radius:10px;padding:10px;overflow-x:auto;white-space:pre}
+.note{background:var(--warn-soft);color:var(--ink);border-radius:12px;padding:10px 14px;font-size:15px;margin-bottom:14px}
+.boxes{display:flex;gap:6px;align-items:flex-end;height:90px;margin:10px 0 4px}
+.boxes div{flex:1;background:var(--accent);border-radius:6px 6px 0 0;min-height:3px;position:relative}
+.boxes div span{position:absolute;top:-18px;left:0;right:0;text-align:center;font-size:12px;color:var(--muted)}
+.boxlab{display:flex;gap:6px}.boxlab span{flex:1;text-align:center;font-size:12px;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+input[type=search]{width:100%;font:inherit;font-size:18px;padding:11px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.lessonrow{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:14px}
+.lessonrow .bar{flex:1;margin:0}
+.lessonrow span:first-child{width:46%;color:var(--muted)}
+.slots{display:flex;flex-wrap:wrap;gap:8px;min-height:64px;padding:8px;border:2px dashed var(--line);border-radius:14px;margin:10px 0}
+.slotwrap{display:flex;flex-direction:column;align-items:center;gap:2px}
+.slotno{font-size:12px;font-weight:700;color:var(--muted)}
+.slotno.vs{color:var(--accent)}
+.blk{min-height:46px;padding:8px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:19px;font-weight:600}
+.blk.placed{background:var(--accent-soft);border-color:var(--accent)}
+.pool{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px;min-height:50px}
+.seatrow{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.cell{display:flex;flex-direction:column;align-items:center;gap:2px}
+.cell b{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:18px;font-weight:600}
+.cell.fin b{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.cell.last b{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.cell i{font-style:normal;font-size:12px;font-weight:700;color:var(--muted)}
+.cell.fin i{color:var(--accent)}.cell.last i{color:var(--warn)}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin:12px 0 4px}
+.mcol{display:flex;flex-direction:column;gap:8px}
+.mtile{min-height:54px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:16px;text-align:left;line-height:1.25;width:100%}
+.mtile.sel{border-color:var(--accent);background:var(--accent-soft)}
+.mtile.ok{border-color:var(--good);background:var(--good-soft);color:var(--good);font-weight:600}
+.mtile.bad{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.mtile .lsn{font-size:16px;font-weight:600}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="app"></div></div>
+<!-- Cloud sync SDK (cached by the service worker after first load, so later
+     offline loads don't block on these - see initFirebase()'s typeof guard). -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+const DATA = /*__DATA__*/null;
+(function(){
+'use strict';
+
+/* ---------- helpers ---------- */
+const $ = (s, r) => (r || document).querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+const fold = s => s.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');
+const PERS = ['ich','du','er/sie/es','wir','ihr','sie/Sie'];
+const SAYPERS = ['ich','du','er','wir','ihr','sie'];
+const IMPP = ['du','ihr','Sie'];
+const AUX = {hat:['habe','hast','hat','haben','habt','haben'], ist:['bin','bist','ist','sind','seid','sind']};
+const chunkT = c => c.replace(/^[!~]/, '');
+const chunkM = c => c[0] === '!' ? 'fin' : c[0] === '~' ? 'last' : '';
+const cap1 = t => t.charAt(0).toUpperCase() + t.slice(1);
+const sentence = (alt, p) => cap1(alt.map(chunkT).join(' ')) + p;
+const OCAT = {}; (DATA.ocats || []).forEach(o => OCAT[o.code] = o);
+const LTITLE = {}; DATA.lessons.forEach(l => LTITLE[l.code] = l.title);
+
+/* ---------- storage (localStorage in try/catch, memory fallback) ---------- */
+const KEY = 'gt.v1';
+let memCopy = null, storageOK = true;
+function defaults(){ return {v:1, cards:{}, days:{}, settings:{lessons:[], size:20, tense:'pres', tricky:false, gcat:'', ocat:'', guide:true, theme:'', wdir:'de', listen:false}}; }
+function load(){
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch(e) { storageOK = false; }
+  if (!raw && memCopy) raw = memCopy;
+  if (raw) { try { const s = JSON.parse(raw); const d = defaults(); return Object.assign(d, s, {settings:Object.assign(d.settings, s.settings || {})}); } catch(e) {} }
+  return defaults();
+}
+function save(){
+  const s = JSON.stringify(S); memCopy = s;
+  try { localStorage.setItem(KEY, s); } catch(e) { storageOK = false; }
+  pushDb();
+}
+let S = load();
+
+/* ---------- cloud sync (Firebase Auth + Firestore): keeps progress the same
+   on every device where Guille is signed in with the same Google account.
+   Falls back to this-device-only (localStorage above) when offline, not yet
+   signed in, or the SDK failed to load (e.g. first-ever open with no
+   network) - the app is fully usable either way. */
+const FIREBASE_CONFIG = /*__FIREBASE_CONFIG__*/{
+  apiKey: "REPLACE_ME",
+  authDomain: "REPLACE_ME.firebaseapp.com",
+  projectId: "REPLACE_ME",
+  storageBucket: "REPLACE_ME.appspot.com",
+  messagingSenderId: "REPLACE_ME",
+  appId: "REPLACE_ME"
+};
+let fbAuth = null, fbStore = null, fbUser = null, dbDocRef = null, unsubSnap = null;
+let dbReady = false, dbTried = false, pushTimer = null, pushChain = Promise.resolve(), lastPushed = null;
+function applyRemote(snap, isInitial){
+  if (!snap || !snap.exists) return;
+  const data = snap.data(); if (!data || typeof data.payload !== 'string') return;
+  if (!isInitial && snap.metadata && snap.metadata.hasPendingWrites) return;
+  if (!isInitial && data.payload === lastPushed) return;
+  if (!isInitial && view === 'run') return; // never yank state out from under an active session
+  try {
+    const remote = JSON.parse(data.payload);
+    if (!remote || typeof remote.cards !== 'object') return;
+    const d = defaults();
+    S = Object.assign(d, remote, {settings: Object.assign(d.settings, remote.settings || {})});
+    memCopy = JSON.stringify(S);
+    try { localStorage.setItem(KEY, memCopy); } catch(e) {}
+    if (!isInitial) render();
+  } catch(e) {}
+}
+function attachSync(uid){
+  if (unsubSnap) { try { unsubSnap(); } catch(e) {} unsubSnap = null; }
+  dbDocRef = fbStore.doc('progress/' + uid);
+  dbDocRef.get().then(snap => applyRemote(snap, true)).catch(() => {});
+  unsubSnap = dbDocRef.onSnapshot(s => applyRemote(s, false), () => {});
+  dbReady = true;
+}
+function detachSync(){
+  if (unsubSnap) { try { unsubSnap(); } catch(e) {} unsubSnap = null; }
+  dbDocRef = null; dbReady = false;
+}
+function initFirebase(){
+  dbTried = true;
+  try {
+    if (typeof firebase === 'undefined' || !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'REPLACE_ME') { render(); return; }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fbAuth = firebase.auth();
+    fbStore = firebase.firestore();
+    try { fbStore.enablePersistence({synchronizeTabs:true}); } catch(e) {} // lets Firestore itself read/queue offline
+    fbAuth.getRedirectResult().catch(() => {}); // pick up a signInWithRedirect fallback if one just completed
+    fbAuth.onAuthStateChanged(user => {
+      fbUser = user;
+      if (user) attachSync(user.uid); else detachSync();
+      render();
+    });
+  } catch(e) { render(); }
+}
+function signIn(){
+  if (!fbAuth) return;
+  const provider = new firebase.auth.GoogleAuthProvider();
+  fbAuth.signInWithPopup(provider).catch(() => { fbAuth.signInWithRedirect(provider).catch(() => {}); });
+}
+function signOutUser(){ if (fbAuth) fbAuth.signOut(); }
+function pushDb(){
+  if (!dbReady || !dbDocRef) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    const payload = memCopy;
+    pushChain = pushChain.then(() => { lastPushed = payload; return dbDocRef.set({payload:payload, updatedAt:Date.now()}); }).catch(() => {});
+  }, 700);
+}
+
+const dayNum = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
+const dayStr = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
+function streak(){
+  let n = dayNum(), c = 0;
+  if (!S.days[dayStr(n)]) n--;
+  while (S.days[dayStr(n)]) { c++; n--; }
+  return c;
+}
+
+/* ---------- Leitner spaced repetition ---------- */
+const INT = [0, 0, 1, 3, 7, 16, 35];
+function grade(id, ok){
+  const c = S.cards[id] || (S.cards[id] = {box:0, due:0, n:0, ok:0});
+  c.n++;
+  if (ok) { c.ok++; c.box = c.box <= 1 ? 2 : Math.min(6, c.box + 1); } else { c.box = 1; }
+  c.due = dayNum() + INT[c.box];
+  const d = dayStr(dayNum()); S.days[d] = (S.days[d] || 0) + 1;
+}
+
+/* ---------- pools ---------- */
+const lessonOK = x => !S.settings.lessons.length || S.settings.lessons.indexOf(x.lesson) >= 0;
+const tricky = v => v.vc || v.sep || v.modal || v.irr.some(Boolean);
+const LESSON_OF = {};
+function tensesFor(v, t){
+  const out = [];
+  if (t === 'pres' || t === 'mix') out.push('pres');
+  if ((t === 'perf' || t === 'mix') && v.part) out.push('perf');
+  if ((t === 'praet' || t === 'mix') && v.praet) out.push('praet');
+  if ((t === 'imp' || t === 'mix') && v.imp) out.push('imp');
+  return out;
+}
+function pool(kind, o){
+  o = o || {};
+  switch (kind) {
+    case 'art': return DATA.nouns.filter(lessonOK).map(n => ({id:n.id + ':a', type:'art', ref:n}));
+    case 'plu': return DATA.nouns.filter(lessonOK).filter(n => n.plural !== '-' && n.plural !== 'pl').map(n => ({id:n.id + ':p', type:'plu', ref:n}));
+    case 'word': return DATA.words.filter(lessonOK).map(w => ({id:w.id, type:'word', ref:w}));
+    case 'verb': {
+      const t = o.tense || S.settings.tense, out = [];
+      DATA.verbs.filter(lessonOK).filter(v => !(o.tricky != null ? o.tricky : S.settings.tricky) || tricky(v)).forEach(v => {
+        tensesFor(v, t).forEach(te => out.push({id:v.id + ':' + te, type:'verb', tense:te, ref:v, person:0}));
+      });
+      return out;
+    }
+    case 'order': return DATA.sentences.filter(x => !S.settings.ocat || x.cat === S.settings.ocat).map(x => ({id:x.id, type:'ord', ref:x}));
+    case 'gram': return DATA.grammar.filter(q => !S.settings.gcat || q.cat === S.settings.gcat).map(q => ({id:'gq:' + q.id, type:'gram', ref:q}));
+  }
+  return [];
+}
+function allPoolsForMix(){
+  return {art:pool('art'), plu:pool('plu'), word:pool('word'), verb:pool('verb', {tense:'mix', tricky:S.settings.tricky}), order:pool('order'), gram:pool('gram')};
+}
+function split(items){
+  const day = dayNum(), due = [], fresh = [];
+  items.forEach(it => { const c = S.cards[it.id]; if (!c || !c.n) fresh.push(it); else if (c.due <= day) due.push(it); });
+  due.sort((a, b) => S.cards[a.id].due - S.cards[b.id].due);
+  return {due, fresh};
+}
+function buildQueue(items, size){
+  const {due, fresh} = split(items);
+  let q = due.slice(0, size);
+  q = q.concat(fresh.slice(0, Math.max(0, size - q.length)));
+  return shuffle(q);
+}
+function buildMix(size){
+  // Round-robin BOTH the due and the fresh portions across every pool, so
+  // one type (say, a backlog of overdue verbs) can never crowd out the rest
+  // of a "Daily mix" session - every section gets a fair turn.
+  const P = allPoolsForMix(), keys = Object.keys(P);
+  const dueByKey = {}, freshByKey = {};
+  keys.forEach(k => { const s = split(P[k]); dueByKey[k] = s.due.slice(); freshByKey[k] = s.fresh.slice(); });
+  let q = [], idx = 0, added = 0;
+  while (added < size && keys.some(k => dueByKey[k].length)) {
+    const k = keys[idx % keys.length]; idx++;
+    if (dueByKey[k].length) { q.push(dueByKey[k].shift()); added++; }
+  }
+  const newCap = Math.max(0, size - q.length);
+  added = 0; idx = 0;
+  while (added < newCap && keys.some(k => freshByKey[k].length)) {
+    const k = keys[idx % keys.length]; idx++;
+    if (freshByKey[k].length) { q.push(freshByKey[k].shift()); added++; }
+  }
+  return shuffle(q);
+}
+function counts(items){ const s = split(items); return {due:s.due.length, fresh:s.fresh.length}; }
+function prep(items){ // per-item random details
+  return items.map(it => {
+    const x = Object.assign({}, it);
+    if (x.type === 'verb') x.person = Math.floor(Math.random() * (x.tense === 'imp' ? 3 : 6));
+    if (x.type === 'ord') {
+      const base = x.ref.alts[0].map(c => chunkT(c));
+      let idx = base.map((_, i) => i), tries = 0;
+      do { idx = shuffle(idx); tries++; } while (tries < 30 && x.ref.alts.some(a => a.every((c, i) => chunkT(c) === base[idx[i]])));
+      x.shuf = idx.map(i => x.ref.alts[0][i]);
+    }
+    return x;
+  });
+}
+
+/* ---------- speech ---------- */
+function speak(text){
+  try {
+    if (!('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(text); u.lang = 'de-DE'; u.rate = .9;
+    const vs = speechSynthesis.getVoices().filter(v => /^de/i.test(v.lang));
+    if (vs.length) u.voice = vs[0];
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch(e) {}
+}
+const spk = (t, label) => `<button class="btn small ghost" data-act="say" data-t="${esc(t)}" aria-label="Listen">&#9654; ${esc(label || 'Listen')}</button>`;
+
+/* ---------- app state ---------- */
+let view = 'home', mode = null, run = null, conj = {q:'', f:'all', v:null}, exportText = '', resetArm = false, notice = '';
+const app = $('#app');
+
+const MODES = {
+  mix:  {title:'Daily mix', sub:'Everything that is due today', blurb:'A little of everything, picked by the spaced-repetition schedule, and balanced across sections so no single topic crowds out the rest. Like watering a plant: small, regular sips beat one big flood.'},
+  art:  {title:'Articles', sub:'der · die · das', blurb:'Every noun wears a name tag: der, die or das. Learn the tag together with the noun, the way you learn a person together with their surname.'},
+  plu:  {title:'Plurals', sub:'type the plural', blurb:'Plurals are like shoe sizes: no single rule, but patterns (-e, -er, -n, umlaut) show up again and again. Type the plural without "die".'},
+  word: {title:'Match', sub:'vocabulary pairs · read or listen', blurb:'Tap a German item and its English match. It’s graded automatically the moment you guess — no more self-honesty grading. Switch Mode to Listen and match by ear instead of by eye.'},
+  verb: {title:'Verb drill', sub:'conjugation gym', blurb:'Conjugation is a gym: reps beat theory. Type the form — your keyboard’s own German layout has ä/ö/ü/ß, so just type them directly.'},
+  order:{title:'Sentence builder', sub:'word order: seat 2 &amp; the sandwich', blurb:'Think of a cinema row: seat 2 is reserved for the verb. Whatever comes first takes seat 1, so the subject may have to sit further back. Tap the blocks in the right order; the seat guide shows where the verb belongs.'},
+  gram: {title:'Grammar quiz', sub:'from your Momente notes', blurb:'A sparring partner, not an exam. Wrong answers come straight back, and each answer comes with a one-line reason.'}
+};
+const CASECATS = ['Nominativ / Akkusativ', 'Dativ', 'Präpositionen', 'Welcher Fall?'];
+const DOORCATS = ['Wechselpräpositionen'];
+const TENSE_LAB = {pres:'Präsens', perf:'Perfekt', praet:'Präteritum', imp:'Imperativ', mix:'Mix'};
+
+/* ---------- rendering ---------- */
+function render(){
+  document.documentElement.setAttribute('data-theme', S.settings.theme || '');
+  if (!S.settings.theme) document.documentElement.removeAttribute('data-theme');
+  let h = `<header>${view !== 'home' && view !== 'run' ? '<button class="btn small" data-act="home">&larr; Home</button>' : ''}<h1>German Trainer<span class="sub">A2.1 &rarr; B2 &middot; progress syncs automatically</span></h1><button class="btn small ghost" data-act="theme">${S.settings.theme === 'dark' ? 'Light' : S.settings.theme === 'light' ? 'Auto' : 'Dark'}</button></header>`;
+  if (!storageOK) h += `<div class="note">This browser is not saving progress (private window or blocked storage). Your progress lasts until you close the page. Use Progress &rarr; Backup to save it.</div>`;
+  if (dbTried && !fbUser && typeof navigator !== 'undefined' && navigator.onLine) h += `<div class="note">Sign in to sync progress across your devices. <button class="btn small" data-act="signin">Sign in with Google</button></div>`;
+  else if (dbTried && fbUser && !dbReady) h += `<div class="note">Cloud sync isn’t reachable right now, so progress is only saving on this device. It will sync again once you’re back online.</div>`;
+  if (notice) { h += `<div class="note">${esc(notice)}</div>`; notice = ''; }
+  switch (view) {
+    case 'home': h += home(); break;
+    case 'setup': h += setup(); break;
+    case 'run': h += runView(); break;
+    case 'end': h += endView(); break;
+    case 'conj': h += conjView(); break;
+    case 'cheat': h += cheatView(); break;
+    case 'progress': h += progressView(); break;
+  }
+  app.innerHTML = h;
+  if (view === 'run') { const i = $('#ans'); if (i && !run.answered) { try { i.focus(); } catch(e) {} } }
+}
+
+function home(){
+  const today = S.days[dayStr(dayNum())] || 0;
+  const mixC = (() => { let d = 0, f = 0; const P = allPoolsForMix(); Object.keys(P).forEach(k => { const c = counts(P[k]); d += c.due; f += c.fresh; }); return {due:d, fresh:f}; })();
+  let h = `<div class="stats"><div class="stat"><b>${streak()}</b><span>day streak</span></div><div class="stat"><b>${today}</b><span>answers today</span></div><div class="stat"><b>${Object.keys(S.cards).length}</b><span>items started</span></div></div>`;
+  h += `<button class="tile hero" data-act="open" data-m="mix" style="margin-bottom:12px"><b>Daily mix</b><span>${MODES.mix.sub}</span><i class="due">${mixC.due} due &middot; ${mixC.fresh} new available</i></button>`;
+  h += '<div class="tiles">';
+  ['art','plu','word','verb','order','gram'].forEach(m => {
+    const c = m === 'verb' ? counts(pool('verb')) : counts(pool(m));
+    h += `<button class="tile" data-act="open" data-m="${m}"><b>${MODES[m].title}</b><span>${MODES[m].sub}</span><i class="due">${c.due} due &middot; ${c.fresh} new</i></button>`;
+  });
+  h += `<button class="tile" data-act="view" data-v="conj"><b>Conjugator</b><span>look up any verb, offline</span></button>`;
+  h += `<button class="tile" data-act="view" data-v="cheat"><b>Cheat sheet</b><span>Perfekt, cases, word order</span></button>`;
+  h += `<button class="tile" data-act="view" data-v="progress"><b>Progress &amp; sync</b><span>boxes, lessons, backup</span></button>`;
+  h += '</div>';
+  return h;
+}
+
+function chips(items, isOn, act){
+  return '<div class="chips">' + items.map(([v, l]) => `<button class="chip${isOn(v) ? ' on' : ''}" data-act="${act}" data-v="${esc(v)}">${esc(l)}</button>`).join('') + '</div>';
+}
+
+function itemsFor(m){ return m === 'mix' ? null : pool(m); }
+function setup(){
+  const M = MODES[mode];
+  let h = `<div class="card"><h2>${M.title}</h2><p class="muted" style="margin-top:0">${M.blurb}</p>`;
+  if (mode === 'order') {
+    h += `<div class="tag">Topic</div>` + chips([['', 'All']].concat((DATA.ocats || []).map(o => [o.code, o.label])), v => S.settings.ocat === v, 'ocat');
+    h += `<div class="tag">Seat guide</div>` + chips([['1', 'Guide on (verb seat marked)'], ['0', 'Guide off (harder)']], v => (v === '1') === !!S.settings.guide, 'guide');
+  }
+  if (mode !== 'order' && mode !== 'gram') {
+    h += `<div class="tag">Lessons</div>` + chips([['', 'All']].concat(DATA.lessons.map(l => [l.code, l.title])), v => v === '' ? !S.settings.lessons.length : S.settings.lessons.indexOf(v) >= 0, 'lesson');
+  }
+  if (mode === 'word') {
+    h += `<div class="tag">Direction</div>` + chips([['de','German → English'],['en','English → German'],['mix','Mixed']], v => (S.settings.wdir || 'de') === v, 'wdir');
+    h += `<div class="tag">Mode</div>` + chips([['0','Read the word'],['1','Listen only']], v => (v === '1') === !!S.settings.listen, 'listen');
+  }
+  if (mode === 'verb') {
+    h += `<div class="tag">Tense</div>` + chips(Object.keys(TENSE_LAB).map(k => [k, TENSE_LAB[k]]), v => S.settings.tense === v, 'tense');
+  }
+  if (mode === 'verb' || mode === 'mix') {
+    h += `<div class="tag">Which verbs</div>` + chips([['0', 'All verbs'], ['1', 'Tricky only (irregular, separable, modal)']], v => (v === '1') === !!S.settings.tricky, 'tricky');
+  }
+  if (mode === 'gram') {
+    const cats = []; DATA.grammar.forEach(q => { if (cats.indexOf(q.cat) < 0) cats.push(q.cat); });
+    h += `<div class="tag">Topic</div>` + chips([['', 'All topics']].concat(cats.map(c => [c, c])), v => S.settings.gcat === v, 'gcat');
+  }
+  h += `<div class="tag">Session length</div>` + chips([['10','10'],['20','20'],['40','40']], v => S.settings.size === +v, 'size');
+  let c;
+  if (mode === 'mix') { c = {due:0, fresh:0}; const P = allPoolsForMix(); Object.keys(P).forEach(k => { const x = counts(P[k]); c.due += x.due; c.fresh += x.fresh; }); }
+  else c = counts(itemsFor(mode));
+  h += `<p><b>${c.due}</b> due &middot; <b>${c.fresh}</b> new in this selection</p>`;
+  const total = mode === 'mix' ? 1 : itemsFor(mode).length;
+  h += `<div class="flex"><button class="btn primary" data-act="start" ${total ? '' : 'disabled'}>Start</button>`;
+  if (c.due + c.fresh === 0 && total) h += `<span class="muted">All caught up. Start = extra practice on random items.</span>`;
+  h += `</div>`;
+  if (!total) h += `<p class="muted">Nothing matches this selection.</p>`;
+  h += '</div>';
+  return h;
+}
+
+function makeBatches(list){
+  const bs = [];
+  for (let i = 0; i < list.length; i += 6) bs.push(list.slice(i, i + 6));
+  return bs.map(pairs => {
+    let dir = S.settings.wdir || 'de';
+    if (S.settings.listen) dir = 'de';
+    else if (dir === 'mix') dir = Math.random() < .5 ? 'de' : 'en';
+    return {pairs, dir, listen: !!S.settings.listen};
+  });
+}
+function initBatch(){
+  const b = run.batches[run.bi];
+  run.curBatch = {
+    pairs: b.pairs, dir: b.dir, listen: b.listen,
+    leftOrder: shuffle(b.pairs.map((_, i) => i)),
+    rightOrder: shuffle(b.pairs.map((_, i) => i)),
+    matched: new Set(), guessed: new Set(),
+    sel: null, flash: null
+  };
+}
+
+function startRun(){
+  const size = S.settings.size;
+  if (mode === 'word') {
+    let batches = makeBatches(buildQueue(pool('word'), size));
+    let n = batches.reduce((s, b) => s + b.pairs.length, 0);
+    if (!n) { batches = makeBatches(shuffle(pool('word')).slice(0, size)); n = batches.reduce((s, b) => s + b.pairs.length, 0); }
+    run = {mode:'word', batches, bi:0, n, score:0, total:0, missed:[]};
+    initBatch(); view = 'run'; render(); return;
+  }
+  let items = mode === 'mix' ? buildMix(size) : buildQueue(itemsFor(mode), size);
+  if (!items.length) { // extra practice
+    const all = mode === 'mix' ? [].concat.apply([], Object.values(allPoolsForMix())) : itemsFor(mode);
+    items = shuffle(all).slice(0, size);
+  }
+  items = prep(items);
+  run = {items, n:items.length, i:0, score:0, total:0, missed:[], answered:false, revealed:false, picked:null, given:'', lastOk:false, used:[]};
+  view = 'run'; render();
+}
+
+function cur(){ return run.items[run.i]; }
+function next(){
+  run.i++; run.answered = false; run.revealed = false; run.picked = null; run.given = ''; run.used = [];
+  if (run.i >= run.items.length) { view = 'end'; }
+  render();
+}
+function answer(ok, given){
+  if (run.answered) return;
+  const it = cur();
+  run.answered = true; run.lastOk = ok; run.given = given || '';
+  if (!it.retry) {
+    grade(it.id, ok); run.total++;
+    if (ok) run.score++; else {
+      run.missed.push(it);
+      const again = Object.assign({}, it, {retry:true});
+      if (again.type === 'verb') again.person = Math.floor(Math.random() * (again.tense === 'imp' ? 3 : 6));
+      run.items.push(again);
+    }
+    save();
+  }
+  render();
+}
+
+/* ---------- item views ---------- */
+function nounFull(n){
+  const pl = n.plural === '-' ? 'no plural' : n.plural === 'pl' ? 'plural only' : 'Pl.: die ' + n.plural;
+  return `${esc(n.art)} ${esc(n.word)} <span class="muted" style="font-size:16px;font-weight:400">&middot; ${esc(pl)}</span>`;
+}
+function verbAsk(it){
+  const v = it.ref, p = it.person;
+  let expected, label, sentence;
+  if (it.tense === 'pres') { expected = v.forms[p]; label = PERS[p]; sentence = SAYPERS[p] + ' ' + expected; }
+  else if (it.tense === 'perf') { expected = AUX[v.aux][p] + ' ' + v.part; label = PERS[p]; sentence = SAYPERS[p] + ' ' + expected; }
+  else if (it.tense === 'praet') { expected = v.praet[p]; label = PERS[p]; sentence = SAYPERS[p] + ' ' + expected; }
+  else { expected = v.imp[p]; label = IMPP[p]; sentence = expected; }
+  return {expected, label, sentence};
+}
+function verbTable(it){
+  const v = it.ref; let rows = '';
+  const src = it.tense === 'pres' ? v.forms.map((f, i) => [PERS[i], f, v.irr[i]])
+    : it.tense === 'perf' ? AUX[v.aux].map((a, i) => [PERS[i], a + ' ' + v.part, false])
+    : it.tense === 'praet' ? v.praet.map((f, i) => [PERS[i], f, false])
+    : v.imp.map((f, i) => [IMPP[i], f, false]);
+  src.forEach((r, i) => { rows += `<tr class="${i === it.person ? 'hl' : ''}"><td>${esc(r[0])}</td><td class="${r[2] ? 'irr' : ''}">${esc(r[1])}</td></tr>`; });
+  return `<table class="forms">${rows}</table>`;
+}
+function feedback(it){
+  const ok = run.lastOk; let h = `<div class="fb ${ok ? 'good' : 'bad'}">`;
+  if (it.type === 'art') {
+    const n = it.ref; h += `<div class="ans">${ok ? 'Richtig!' : 'Not quite.'} ${nounFull(n)}</div>`;
+    if (n.hint) h += `<div class="why">Tip: ${esc(n.hint)}.</div>`;
+    h += `<div style="margin-top:8px">${spk(n.art + ' ' + n.word)}</div>`;
+  } else if (it.type === 'plu') {
+    const n = it.ref; h += `<div class="ans">${ok ? 'Richtig!' : 'Correct plural:'} die ${esc(n.plural)}</div>`;
+    if (!ok && run.given) h += `<div class="why">You typed: ${esc(run.given)}</div>`;
+    h += `<div style="margin-top:8px">${spk('die ' + n.plural)}</div>`;
+  } else if (it.type === 'verb') {
+    const a = verbAsk(it); h += `<div class="ans">${ok ? 'Richtig!' : 'Correct:'} ${esc(a.sentence)}</div>`;
+    if (!ok && run.given) h += `<div class="why">You typed: ${esc(run.given)}</div>`;
+    if (!ok && it.tense === 'perf') h += `<div class="why">Sandwich: helper in slot 2, Partizip II at the end.</div>`;
+    if (!ok && it.ref.sep && it.tense !== 'perf') h += `<div class="why">Separable verb: the prefix &ldquo;${esc(it.ref.sep)}&rdquo; jumps to the end.</div>`;
+    h += verbTable(it) + spk(a.sentence.replace(/!$/, ''));
+  } else if (it.type === 'ord') {
+    const r = it.ref, cat = OCAT[r.cat] || {tip:''};
+    h += `<div class="ans">${ok ? 'Richtig!' : 'Not quite.'}</div>` + seats(r.alts[0], r.cat);
+    h += `<div class="why">${esc(sentence(r.alts[0], r.p))}</div>`;
+    if (r.alts.length > 1) h += `<div class="why">Also correct: ${r.alts.slice(1).map(a => esc(sentence(a, r.p))).join(' &middot; ')}</div>`;
+    if (!ok && run.given) h += `<div class="why">You built: ${esc(run.given)}</div>`;
+    h += `<div class="why"><b>Rule:</b> ${esc(cat.tip)}</div>`;
+    if (!ok) h += `<div class="why muted">Other orders can exist, but this is the most natural one.</div>`;
+    h += `<div style="margin-top:8px">${spk(sentence(r.alts[0], r.p).replace(/[.?!]$/, ''))}</div>`;
+  } else if (it.type === 'gram') {
+    h += `<div class="ans">${ok ? 'Richtig!' : 'Correct: ' + esc(it.ref.a)}</div><div class="why">${esc(it.ref.why)}</div>`;
+    if (!ok && CASECATS.indexOf(it.ref.cat) >= 0) h += `<div class="why"><b>Coat check:</b> 1) the doer? Nominative, no change. 2) wen oder was? Only der becomes den. 3) after mit, bei, aus, nach, seit, von, zu: dem / der / dem / den.</div>`;
+    if (!ok && DOORCATS.indexOf(it.ref.cat) >= 0) h += `<div class="why"><b>Doorway test:</b> moving through/into = wohin? = Akkusativ. Already there, staying put = wo? = Dativ.</div>`;
+  }
+  return h + '</div>';
+}
+
+function seats(alt, cat){
+  let h = '<div class="seatrow">';
+  alt.forEach((c, i) => {
+    const m = chunkM(c);
+    const lab = m === 'fin' ? 'seat ' + (i + 1) + ' · verb' : m === 'last' ? (cat === 'sub' ? 'last wagon' : 'last seat') : (cat === 'sub' && i > 1 ? '' : 'seat ' + (i + 1));
+    h += `<div class="cell ${m}"><i>${lab || '&nbsp;'}</i><b>${esc(i === 0 ? cap1(chunkT(c)) : chunkT(c))}</b></div>`;
+  });
+  return h + '</div>';
+}
+
+function matchRunView(){
+  const cb = run.curBatch; if (!cb) return '';
+  const pct = Math.round(100 * Math.min(run.total, run.n) / Math.max(1, run.n));
+  let h = `<div class="flex" style="margin-bottom:6px"><span class="muted">${Math.min(run.total, run.n)} / ${run.n}</span><span class="spacer"></span><button class="btn small ghost" data-act="quit">End session</button></div><div class="bar"><i style="width:${pct}%"></i></div><div class="card">`;
+  h += `<span class="tag">Match</span><span class="tag">${cb.dir === 'de' ? (cb.listen ? 'Listen · German → English' : 'German → English') : 'English → German'}</span>`;
+  h += `<div class="sub2" style="margin-top:6px;font-size:16px">${cb.listen ? 'Tap a card to hear it, then tap its English meaning.' : 'Tap one card, then its match.'}</div>`;
+  h += '<div class="mgrid"><div class="mcol">';
+  cb.leftOrder.forEach(pi => {
+    const w = cb.pairs[pi].ref, matched = cb.matched.has(pi);
+    const isFlashL = cb.flash && cb.flash.l === pi;
+    let cls = 'mtile' + (matched ? ' ok' : '') + (cb.sel && cb.sel.side === 'l' && cb.sel.pi === pi ? ' sel' : '') + (isFlashL ? ' bad' : '');
+    const showText = cb.dir === 'de' ? w.de : w.en;
+    const content = (cb.listen && cb.dir === 'de' && !matched) ? '<span class="lsn">&#9654;&#65039; Listen</span>' : esc(showText);
+    h += `<button class="${cls}" data-act="mtap" data-side="l" data-pi="${pi}" ${matched ? 'disabled' : ''}>${content}</button>`;
+  });
+  h += '</div><div class="mcol">';
+  cb.rightOrder.forEach(pi => {
+    const w = cb.pairs[pi].ref, matched = cb.matched.has(pi);
+    const isFlashR = cb.flash && cb.flash.r === pi;
+    let cls = 'mtile' + (matched ? ' ok' : '') + (cb.sel && cb.sel.side === 'r' && cb.sel.pi === pi ? ' sel' : '') + (isFlashR ? ' bad' : '');
+    const showText = cb.dir === 'de' ? w.en : w.de;
+    h += `<button class="${cls}" data-act="mtap" data-side="r" data-pi="${pi}" ${matched ? 'disabled' : ''}>${esc(showText)}</button>`;
+  });
+  h += '</div></div>';
+  if (cb.matched.size === cb.pairs.length) {
+    const last = run.bi + 1 >= run.batches.length;
+    h += `<div style="margin-top:14px"><button class="btn primary" data-act="matchnext" style="width:100%">${last ? 'Finish' : 'Next set'}</button></div>`;
+  }
+  return h + '</div>';
+}
+
+function runView(){
+  if (mode === 'word') return matchRunView();
+  const it = cur(); if (!it) return '';
+  const pct = Math.round(100 * Math.min(run.total, run.n) / run.n);
+  let h = `<div class="flex" style="margin-bottom:6px"><span class="muted">${Math.min(it.retry ? run.n : (run.answered ? run.total : run.total + 1), run.n)} / ${run.n}${it.retry ? ' &middot; retry' : ''}</span><span class="spacer"></span><button class="btn small ghost" data-act="quit">End session</button></div><div class="bar"><i style="width:${pct}%"></i></div><div class="card">`;
+  if (it.type === 'art') {
+    const n = it.ref;
+    h += `<span class="tag">Noun</span><span class="tag">${esc((LTITLE[n.lesson] || '').split(' · ')[0])}</span><div class="big">${esc(n.word)}</div><div class="sub2">${esc(n.en)}${n.plural === 'pl' ? ' (plural)' : ''}</div><div class="row3">`;
+    ['der','die','das'].forEach(a => {
+      let cls = 'opt art ' + a;
+      if (run.answered) { if (a === n.art) cls += ' right'; else if (a === run.picked) cls += ' wrong'; }
+      h += `<button class="${cls}" data-act="pick" data-v="${a}" ${run.answered ? 'disabled' : ''}>${a}</button>`;
+    });
+    h += '</div>';
+  } else if (it.type === 'plu') {
+    const n = it.ref;
+    h += `<span class="tag">Plural</span><div class="big">${esc(n.art)} ${esc(n.word)}</div><div class="sub2">${esc(n.en)}</div>${typed('die …  (type the plural)')}`;
+  } else if (it.type === 'verb') {
+    const a = verbAsk(it), v = it.ref;
+    h += `<span class="tag">${TENSE_LAB[it.tense]}</span><span class="tag">${esc((LTITLE[v.lesson] || '').split(' · ')[0])}</span>`;
+    if (v.sep) h += `<span class="tag pill">separable</span>`;
+    if (v.modal) h += `<span class="tag pill">modal</span>`;
+    h += `<div class="big">${esc(a.label)} &middot; ${esc(v.inf)}</div><div class="sub2">${esc(v.en)}${it.tense === 'perf' ? ' &mdash; type helper + Partizip II' : ''}</div>${typed(it.tense === 'imp' ? 'Imperative' : 'Type the form')}`;
+  } else if (it.type === 'ord') {
+    const r = it.ref, cat = OCAT[r.cat] || {label:'', tip:''};
+    const vseat = r.alts[0].findIndex(c => c[0] === '!') + 1;
+    const total = it.shuf.length, used = run.used, guide = S.settings.guide;
+    h += `<span class="tag">${esc(cat.label)}</span><div class="big" style="font-size:24px">${esc(r.en)}</div><div class="sub2">Tap the blocks in the right order. The sentence ends with &ldquo;${esc(r.p)}&rdquo;.</div><div class="slots">`;
+    for (let k = 0; k < total; k++) {
+      const idx = used[k], isV = guide && k + 1 === vseat;
+      const no = `<span class="slotno${isV ? ' vs' : ''}">${k + 1}${isV ? ' verb' : ''}</span>`;
+      let btn;
+      if (idx == null) btn = `<span class="blk" style="opacity:.25;border-style:dashed">&nbsp;&nbsp;&nbsp;&nbsp;</span>`;
+      else { let t = chunkT(it.shuf[idx]); if (k === 0) t = cap1(t); btn = `<button class="blk placed" data-act="unplace" data-k="${k}" ${run.answered ? 'disabled' : ''}>${esc(t)}</button>`; }
+      h += `<div class="slotwrap">${no}${btn}</div>`;
+    }
+    h += '</div><div class="pool">';
+    it.shuf.forEach((c, i) => { if (used.indexOf(i) < 0) h += `<button class="blk" data-act="place" data-i="${i}" ${run.answered ? 'disabled' : ''}>${esc(chunkT(c))}</button>`; });
+    h += '</div>';
+    if (!run.answered) h += `<div class="two"><button class="btn" data-act="oreset">Reset</button><button class="btn primary" data-act="check" ${used.length === total ? '' : 'disabled'}>Check</button></div>`;
+  } else if (it.type === 'gram') {
+    const q = it.ref;
+    if (!it.order) it.order = shuffle(q.opts);
+    h += `<span class="tag">${esc(q.cat)}</span><div class="big" style="font-size:24px">${esc(q.q)}</div><div class="opts">`;
+    it.order.forEach(o => {
+      let cls = 'opt';
+      if (run.answered) { if (o === q.a) cls += ' right'; else if (o === run.picked) cls += ' wrong'; }
+      h += `<button class="${cls}" data-act="mc" data-v="${esc(o)}" ${run.answered ? 'disabled' : ''}>${esc(o)}</button>`;
+    });
+    h += '</div>';
+  }
+  if (run.answered) h += feedback(it);
+  if (run.answered) h += `<div style="margin-top:14px"><button class="btn primary" data-act="next" style="width:100%">${run.i + 1 >= run.items.length ? 'Finish' : 'Next'}</button></div>`;
+  return h + '</div>';
+}
+function typed(ph){
+  const dis = run.answered ? 'disabled' : '';
+  let h = `<input type="text" id="ans" placeholder="${esc(ph)}" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" value="${esc(run.given)}" ${dis}>`;
+  if (!run.answered) h += `<button class="btn primary" data-act="check" style="width:100%;margin-top:10px">Check</button>`;
+  return h;
+}
+
+function endView(){
+  const pct = run.total ? Math.round(100 * run.score / run.total) : 0;
+  let h = `<div class="card"><h2>Session done</h2><div class="big">${run.score} / ${run.total}</div><div class="sub2">${pct}% right the first time</div>`;
+  if (run.missed.length) {
+    h += `<div class="tag">To revisit</div><div class="vlist">`;
+    run.missed.forEach(it => { h += `<div class="vitem"><span>${summ(it)}</span></div>`; });
+    h += '</div>';
+  } else h += `<p>No misses. Nice work.</p>`;
+  h += `<div class="flex" style="margin-top:14px"><button class="btn primary" data-act="again">Another round</button><button class="btn" data-act="home">Home</button></div></div>`;
+  return h;
+}
+function summ(it){
+  if (it.type === 'art') return esc(it.ref.art + ' ' + it.ref.word) + ' <small class="muted">' + esc(it.ref.en) + '</small>';
+  if (it.type === 'ord') return esc(sentence(it.ref.alts[0], it.ref.p));
+  if (it.type === 'plu') return esc(it.ref.art + ' ' + it.ref.word + ' → die ' + it.ref.plural);
+  if (it.type === 'word') return esc(it.ref.de) + ' <small class="muted">' + esc(it.ref.en) + '</small>';
+  if (it.type === 'verb') { const a = verbAsk(it); return esc(TENSE_LAB[it.tense] + ': ' + a.sentence); }
+  return esc(it.ref.q) + ' <small class="muted">' + esc(it.ref.a) + '</small>';
+}
+
+/* ---------- conjugator ---------- */
+function conjView(){
+  if (conj.v) return conjDetail(DATA.verbs.filter(v => v.id === conj.v)[0]);
+  const q = fold(conj.q.trim());
+  let list = DATA.verbs.filter(v => {
+    if (conj.f === 'irr' && !(v.vc || v.irr.some(Boolean))) return false;
+    if (conj.f === 'sep' && !v.sep) return false;
+    if (conj.f === 'modal' && !v.modal) return false;
+    if (q && fold(v.inf).indexOf(q) < 0 && fold(v.en).indexOf(q) < 0) return false;
+    return true;
+  }).sort((a, b) => a.inf.localeCompare(b.inf, 'de'));
+  let h = `<div class="card"><h2>Conjugator</h2><input type="search" id="cq" placeholder="Search a verb (German or English)" value="${esc(conj.q)}" autocapitalize="off" autocorrect="off" spellcheck="false">`;
+  h += chips([['all','All'],['irr','Irregular'],['sep','Separable'],['modal','Modal']], v => conj.f === v, 'cf');
+  h += `<div class="muted">${list.length} verbs</div><div class="vlist">`;
+  list.forEach(v => { h += `<button class="vitem" data-act="cv" data-v="${v.id}"><span><b>${esc(v.inf)}</b> <small>${esc(v.en)}</small></span><small>${v.vc ? esc(v.vc) : ''}</small></button>`; });
+  return h + '</div></div>';
+}
+function conjDetail(v){
+  let h = `<div class="card"><div class="flex"><button class="btn small" data-act="cback">&larr; All verbs</button><span class="spacer"></span>${spk(v.inf)}</div><div class="big">${esc(v.inf)}</div><div class="sub2">${esc(v.en)}${v.vc ? ' &middot; vowel change ' + esc(v.vc) : ''}${v.modal ? ' &middot; modal' : ''}</div>`;
+  if (v.sep) h += `<div class="note">Separable: in a main clause the prefix &ldquo;${esc(v.sep)}&rdquo; jumps to the end. In the Perfekt it goes in the middle: <b>${esc(v.part || '')}</b>.</div>`;
+  h += `<h2>Präsens</h2><table class="forms">` + v.forms.map((f, i) => `<tr><td>${PERS[i]}</td><td class="${v.irr[i] ? 'irr' : ''}">${esc(f)}</td></tr>`).join('') + `</table><div class="muted" style="font-size:14px">Red = differs from the regular pattern.</div>`;
+  if (v.part) {
+    h += `<h2 style="margin-top:16px">Perfekt</h2><table class="forms">` + AUX[v.aux].map((a, i) => `<tr><td>${PERS[i]}</td><td>${esc(a + ' ' + v.part)}</td></tr>`).join('') + `</table><div class="sand">${esc('ich ' + AUX[v.aux][0] + ' [ ... ] ' + v.part)}</div><div class="muted" style="font-size:14px">Sandwich: helper in slot 2, Partizip II at the end.</div>`;
+  } else h += `<p class="muted">No Perfekt: möchten is a form of mögen.</p>`;
+  if (v.praet) h += `<h2 style="margin-top:16px">Präteritum</h2><table class="forms">` + v.praet.map((f, i) => `<tr><td>${PERS[i]}</td><td>${esc(f)}</td></tr>`).join('') + `</table><div class="muted" style="font-size:14px">Express lane: for sein, haben, werden and the modals people use this in speech.</div>`;
+  if (v.imp) h += `<h2 style="margin-top:16px">Imperativ</h2><table class="forms">` + v.imp.map((f, i) => `<tr><td>${IMPP[i]}</td><td>${esc(f)}</td></tr>`).join('') + `</table>`;
+  h += `<div class="flex" style="margin-top:14px">${spk(SAYPERS[0] + ' ' + v.forms[0], SAYPERS[0] + ' ' + v.forms[0])}${spk(SAYPERS[1] + ' ' + v.forms[1], SAYPERS[1] + ' ' + v.forms[1])}${v.part ? spk('ich ' + AUX[v.aux][0] + ' ' + v.part, 'ich ' + AUX[v.aux][0] + ' ' + v.part) : ''}</div>`;
+  return h + '</div>';
+}
+
+/* ---------- cheat sheet ---------- */
+function cheatView(){
+  const C = [
+    ['Perfekt = a sandwich', `Helper (<b>haben</b> or <b>sein</b>) sits in slot 2, the Partizip II is the last slice at the end.<div class="sand">Ich habe gestern Pizza gegessen.\nEr ist nach Zürich gefahren.</div>Use <b>sein</b> for movement and change of state: gehen, fahren, kommen, bleiben, sein, werden, passieren, aufstehen. Almost everything else takes <b>haben</b>.`],
+    ['war / hatte = the express lane', `For <b>sein</b>, <b>haben</b> and the modals, people skip the sandwich and use the short past: ich <b>war</b>, ich <b>hatte</b>, ich <b>konnte</b>, ich <b>musste</b>, ich <b>wollte</b>. For all other verbs, speak in Perfekt.`],
+    ['weil / dass / wenn = the last wagon', `After weil, dass and wenn the conjugated verb is sent to the last wagon of the clause.<div class="sand">Ich lerne Deutsch, weil ich in der Schweiz arbeite.\nIch denke, dass er heute kommt.</div>`],
+    ['Word order: the cinema row', `Seat 2 is reserved for the verb. Whatever comes first takes seat 1, so the subject may end up in seat 3.<div class="sand">Ich | fahre | morgen | nach Zürich.\nMorgen | fahre | ich | nach Zürich.\nAm Freitag | bin | ich | nach Madrid | geflogen.</div>Perfekt, modals and separable verbs: the second verb part takes the <b>very last seat</b>. Yes/no questions: verb in seat 1 (<i>Fährst du morgen?</i>). W-questions: question word in seat 1, verb in seat 2 (<i>Wann fährst du?</i>).`],
+    ['After the verb: Time, Manner, Place', `When? then how? then where? Think <b>Te-Mo-Lo</b>.<div class="sand">Ich fahre morgen mit dem Zug nach Zürich.\n      (when)  (how)      (where)</div>`],
+    ['Case coat check: three questions', `1) <b>The doer?</b> Nominative, nothing changes. 2) <b>Wen oder was?</b> Accusative: only der becomes den (ein becomes einen). 3) <b>A dative word before it?</b> mit, bei, aus, nach, seit, von, zu: dem / der / dem / den (+n on plurals). Also dative: helfen, danken, gehören, and the receiver of geben or schenken.`],
+    ['Akkusativ: only the masculine changes', `der &rarr; <b>den</b>, ein &rarr; <b>einen</b>, kein &rarr; <b>keinen</b>. Die, das and the plural stay as they are. Ask: <i>Wen oder was?</i><div class="sand">Ich esse den Apfel.  Ich kaufe die Tasche.  Ich habe das Auto.</div>`],
+    ['Dativ triggers', `<b>mit, bei, aus, nach, seit, von, zu</b> always take the dative: der &rarr; dem, die &rarr; der, das &rarr; dem, plural &rarr; den (+n). Ask: <i>Wem?</i><div class="sand">mit dem Bus · aus der Schweiz · bei den Eltern</div>`],
+    ['Akkusativ triggers', `<b>für, durch, gegen, ohne, um, bis</b> always take the accusative.`],
+    ['Time words', `<b>am</b> + day or part of the day (am Montag, am Abend) &middot; <b>um</b> + clock time (um 8 Uhr) &middot; <b>im</b> + month or season (im Mai, im Sommer).<div class="sand">letzten Monat · letztes Jahr · letzte Woche\nnächsten Monat · nächstes Jahr · nächste Woche\njeden Tag · jedes Jahr · jede Woche</div>`],
+    ['Gender hints', `<b>die</b>: -ung, -heit, -keit, -schaft, -ion, -tät, -ei, -ur &middot; <b>das</b>: -chen, -lein, -um, -ment &middot; <b>der</b>: -ling, -ismus, days, months, seasons. Exceptions exist, and the Articles drill flags them.`],
+    ['The doorway test: an, auf, hinter, in, neben, über, unter, vor, zwischen', `These nine prepositions can take Akkusativ or Dativ &mdash; it depends on whether something is moving. <b>Wohin?</b> (through the doorway, movement) = Akkusativ. <b>Wo?</b> (already on the other side, staying put) = Dativ.<div class="sand">Ich gehe in die Werkstatt. (wohin? &rarr; Akk.)\nIch bin in der Werkstatt. (wo? &rarr; Dativ)\nEr stellt das Buch auf den Tisch. (wohin?)\nDas Buch liegt auf dem Tisch. (wo?)</div>`],
+    ['denn vs. deshalb', `<b>denn</b> = "because" &mdash; behaves like <i>und</i>: it does NOT change word order, the next clause keeps its normal subject-verb order.<div class="sand">Ich bleibe zu Hause, denn ich bin krank.</div><b>deshalb</b> = "so, therefore" &mdash; it takes seat 1 itself, so the verb jumps right after it.<div class="sand">Ich bin krank, deshalb bleibe ich zu Hause.</div>`]
+  ];
+  return '<div class="card"><h2>Cheat sheet</h2><p class="muted" style="margin-top:0">Short reminders that match your class. Full rules stay in your GoodNotes.</p></div>' +
+    C.map(c => `<div class="card"><h2>${c[0]}</h2><div>${c[1]}</div></div>`).join('');
+}
+
+/* ---------- progress ---------- */
+function progressView(){
+  const boxes = [0,0,0,0,0,0];
+  Object.keys(S.cards).forEach(id => { const b = S.cards[id].box; if (b >= 1) boxes[b - 1]++; });
+  const mx = Math.max(1, Math.max.apply(null, boxes));
+  const labels = ['New/missed','1 day','3 days','1 week','2 weeks','Mastered'];
+  const lessonTot = {}, lessonSeen = {};
+  const add = (code, id) => { lessonTot[code] = (lessonTot[code] || 0) + 1; if (S.cards[id] && S.cards[id].n) lessonSeen[code] = (lessonSeen[code] || 0) + 1; };
+  DATA.nouns.forEach(n => add(n.lesson, n.id + ':a'));
+  DATA.words.forEach(w => add(w.lesson, w.id));
+  DATA.verbs.forEach(v => add(v.lesson, v.id + ':pres'));
+  let h = `<div class="card"><h2>Spaced-repetition boxes</h2><div class="muted" style="font-size:14px">Every item you answer moves up a box when you get it right (next review after 1, 3, 7, 16, 35 days) and drops back when you miss it.</div><div class="boxes">${boxes.map(b => `<div style="height:${Math.max(3, Math.round(80 * b / mx))}px"><span>${b}</span></div>`).join('')}</div><div class="boxlab">${labels.map(l => `<span>${l}</span>`).join('')}</div></div>`;
+  h += `<div class="card"><h2>Started per lesson</h2>` + DATA.lessons.map(l => {
+    const t = lessonTot[l.code] || 0, s = lessonSeen[l.code] || 0;
+    return `<div class="lessonrow"><span>${esc(l.title)}</span><div class="bar"><i style="width:${t ? Math.round(100 * s / t) : 0}%"></i></div><span style="width:56px;text-align:right">${s}/${t}</span></div>`;
+  }).join('') + `<div class="muted" style="font-size:13px">Counts nouns, words and verbs (present tense).</div></div>`;
+  h += `<div class="card"><h2>Sync</h2>` + (fbUser
+    ? `<p class="muted" style="margin-top:0">Signed in as ${esc(fbUser.displayName || fbUser.email || 'you')}. ${dbReady ? 'Progress syncs automatically across every device you sign in on — it also works fully offline in between and just catches up once you’re back online.' : 'Cloud sync isn’t reachable right now, so progress is only saving on this device. It will catch up once you’re back online.'}</p><button class="btn small ghost" data-act="signout">Sign out</button>`
+    : `<p class="muted" style="margin-top:0">Sign in once per device with your Google account and progress stays the same on your phone and laptop — no downloads, no copy-paste. The app still works fully offline in between; it just syncs whenever you're back online.</p><button class="btn small" data-act="signin">Sign in with Google</button>`)
+    + `<div class="flex" style="margin-top:10px"><button class="btn small" data-act="export">Show backup text</button><button class="btn small" data-act="copy">Copy</button></div>${exportText ? `<textarea id="exp" readonly>${esc(exportText)}</textarea>` : ''}<h2 style="margin-top:16px">Restore from text</h2><p class="muted" style="margin-top:0;font-size:14px">Only needed if you’re pasting in an old backup.</p><textarea id="imp" placeholder="Paste backup text here"></textarea><div class="flex" style="margin-top:8px"><button class="btn small" data-act="import">Restore from text</button></div>`;
+  h += `<h2 style="margin-top:16px">Reset</h2><button class="btn small" data-act="reset">${resetArm ? 'Tap again to erase all progress' : 'Reset progress'}</button></div>`;
+  return h;
+}
+
+/* ---------- checking typed answers ---------- */
+const norm = (s, isImp) => {
+  let x = fold(s.trim()).replace(/[!.,?]/g, '').replace(/\s+/g, ' ');
+  if (!isImp) x = x.replace(/^(ich|du|er\/sie\/es|er\/sie|er|sie\/sie|sie|es|wir|ihr)\s+/, '');
+  return x;
+};
+function check(){
+  const it = cur(); if (!it || run.answered) return;
+  if (it.type === 'ord') {
+    if (run.used.length !== it.shuf.length) return;
+    const built = run.used.map(k => chunkT(it.shuf[k]));
+    const okO = it.ref.alts.some(a => a.every((c, i) => chunkT(c) === built[i]));
+    answer(okO, cap1(built.join(' ')) + it.ref.p); return;
+  }
+  const inp = $('#ans'); if (!inp) return;
+  const val = inp.value; if (!val.trim()) return;
+  let ok = false;
+  if (it.type === 'plu') ok = fold(val.trim().replace(/^die\s+/i, '')) === fold(it.ref.plural);
+  else if (it.type === 'verb') { const a = verbAsk(it); ok = norm(val, it.tense === 'imp') === norm(a.expected, true); }
+  answer(ok, val.trim());
+}
+
+/* ---------- events ---------- */
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act, v = b.dataset.v;
+  switch (a) {
+    case 'home': run = null; mode = null; conj.v = null; view = 'home'; render(); break;
+    case 'signin': signIn(); break;
+    case 'signout': signOutUser(); break;
+    case 'theme': S.settings.theme = S.settings.theme === '' ? 'dark' : S.settings.theme === 'dark' ? 'light' : ''; save(); render(); break;
+    case 'open': mode = b.dataset.m; view = 'setup'; render(); break;
+    case 'view': view = v; if (v === 'conj') conj.v = null; render(); break;
+    case 'lesson': {
+      if (v === '') S.settings.lessons = [];
+      else { const i = S.settings.lessons.indexOf(v); if (i >= 0) S.settings.lessons.splice(i, 1); else S.settings.lessons.push(v); }
+      save(); render(); break;
+    }
+    case 'wdir': S.settings.wdir = v; save(); render(); break;
+    case 'listen': S.settings.listen = v === '1'; save(); render(); break;
+    case 'tense': S.settings.tense = v; save(); render(); break;
+    case 'tricky': S.settings.tricky = v === '1'; save(); render(); break;
+    case 'gcat': S.settings.gcat = v; save(); render(); break;
+    case 'size': S.settings.size = +v; save(); render(); break;
+    case 'ocat': S.settings.ocat = v; save(); render(); break;
+    case 'guide': S.settings.guide = v === '1'; save(); render(); break;
+    case 'place': if (!run.answered) { run.used.push(+b.dataset.i); render(); } break;
+    case 'unplace': if (!run.answered) { run.used.splice(+b.dataset.k, 1); render(); } break;
+    case 'oreset': run.used = []; render(); break;
+    case 'start': case 'again': startRun(); break;
+    case 'quit': view = run && run.total ? 'end' : 'home'; render(); break;
+    case 'pick': if (!run.answered) { run.picked = v; answer(v === cur().ref.art, v); } break;
+    case 'mc': if (!run.answered) { run.picked = v; answer(v === cur().ref.a, v); } break;
+    case 'check': check(); break;
+    case 'next': next(); break;
+    case 'mtap': {
+      const cb = run.curBatch; if (!cb) break;
+      const side = b.dataset.side, pi = +b.dataset.pi;
+      if (cb.matched.has(pi)) break;
+      if (side === 'l' && cb.listen && cb.dir === 'de') speak(cb.pairs[pi].ref.de);
+      if (!cb.sel) { cb.sel = {side, pi}; render(); break; }
+      if (cb.sel.side === side) { cb.sel = (cb.sel.pi === pi) ? null : {side, pi}; render(); break; }
+      const leftPi = side === 'r' ? cb.sel.pi : pi;
+      const rightPi = side === 'r' ? pi : cb.sel.pi;
+      const leftItem = cb.pairs[leftPi];
+      const correct = leftPi === rightPi;
+      if (!cb.guessed.has(leftItem.id)) {
+        cb.guessed.add(leftItem.id);
+        grade(leftItem.id, correct);
+        run.total++;
+        if (correct) run.score++; else run.missed.push(leftItem);
+        save();
+      }
+      if (correct) {
+        cb.matched.add(leftPi); cb.sel = null; render();
+      } else {
+        cb.flash = {l:leftPi, r:rightPi}; cb.sel = null; render();
+        setTimeout(() => { if (run && run.curBatch === cb) { cb.flash = null; render(); } }, 450);
+      }
+      break;
+    }
+    case 'matchnext':
+      if (run.bi + 1 >= run.batches.length) { view = 'end'; }
+      else { run.bi++; initBatch(); }
+      render();
+      break;
+    case 'say': speak(b.dataset.t); break;
+    case 'cf': conj.f = v; render(); break;
+    case 'cv': conj.v = v; render(); window.scrollTo(0, 0); break;
+    case 'cback': conj.v = null; render(); break;
+    case 'export': exportText = JSON.stringify(S); render(); break;
+    case 'copy': {
+      exportText = JSON.stringify(S); render();
+      const ta = $('#exp'); if (ta) { ta.select(); try { ta.setSelectionRange(0, exportText.length); } catch(x) {} }
+      let done = false;
+      try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(exportText); done = true; } } catch(x) {}
+      if (!done) { try { done = document.execCommand('copy'); } catch(x) {} }
+      break;
+    }
+    case 'import': {
+      const t = $('#imp') ? $('#imp').value.trim() : '';
+      try { const o = JSON.parse(t); if (!o || typeof o.cards !== 'object') throw new Error('bad'); const d = defaults(); S = Object.assign(d, o, {settings:Object.assign(d.settings, o.settings || {})}); save(); notice = 'Progress restored.'; }
+      catch(x) { notice = 'That text is not a valid backup.'; }
+      render(); break;
+    }
+    case 'reset':
+      if (!resetArm) { resetArm = true; render(); }
+      else { S = defaults(); save(); resetArm = false; exportText = ''; notice = 'Progress erased.'; render(); }
+      break;
+  }
+});
+app.addEventListener('input', e => {
+  if (e.target.id === 'cq') {
+    conj.q = e.target.value; const pos = e.target.selectionStart; render();
+    const n = $('#cq'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch(x) {} }
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || view !== 'run' || !run || mode === 'word') return;
+  const t = e.target;
+  if (t && t.tagName === 'BUTTON') return;
+  e.preventDefault();
+  if (run.answered) next(); else check();
+});
+try { if ('speechSynthesis' in window) speechSynthesis.getVoices(); } catch(e) {}
+render();
+initFirebase();
+window.__GT = {get S(){return S;}, get run(){return run;}, DATA};
+})();
+</script>
+<script>
+// PWA installability + offline caching + a light "new version available" banner
+// for the weekly-rebuild workflow (see README.md "Redeploying").
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            const bar = document.createElement('div');
+            bar.textContent = 'A new version is ready — tap to refresh.';
+            bar.style.cssText = 'position:fixed;left:0;right:0;bottom:0;padding:12px 16px;background:#1f5fbf;color:#fff;text-align:center;font:15px/1.3 -apple-system,sans-serif;z-index:9999;cursor:pointer';
+            bar.addEventListener('click', () => { sw.postMessage('SKIP_WAITING'); });
+            document.body.appendChild(bar);
+          }
+        });
+      });
+    }).catch(() => {});
+    let refreshed = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshed) return; refreshed = true; location.reload();
+    });
+  });
+}
+</script>
+</body>
+</html>
