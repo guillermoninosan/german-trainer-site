@@ -3,7 +3,7 @@
 // Bump CACHE_VERSION every time you redeploy (new data.json / new features) so
 // installed devices pick up the new index.html instead of serving a stale cached
 // copy forever. See README.md "Redeploying" for the one-line rule.
-const CACHE_VERSION = 'v-3152e1f632';
+const CACHE_VERSION = 'v-1e045ef4ee';
 const CACHE_NAME = `german-trainer-${CACHE_VERSION}`;
 
 // Same-origin app shell: cached eagerly on install so the app opens with zero

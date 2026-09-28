@@ -36,7 +36,10 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  padding:0 16px env(safe-area-inset-bottom)}
+  padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
+/* Installed-app status bar on iOS renders "black-translucent" (overlaying the page),
+   so without the safe-area-inset-top padding above, the header sits under the clock/
+   battery icons and its buttons (incl. the dark-mode toggle) become unreachable. */
 #wrap{max-width:720px;margin:0 auto;padding:14px 0 60px}
 header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 header h1{font-size:20px;margin:0;flex:1;letter-spacing:.2px}
@@ -66,6 +69,7 @@ h2{font-size:18px;margin:0 0 8px}
 .muted{color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
 .chip{min-height:40px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-size:15px}
+a.chip{display:inline-flex;align-items:center;text-decoration:none;color:var(--ink)}
 .chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-right:8px}
 .tag.pill{background:var(--warn-soft);color:var(--warn);padding:1px 8px;border-radius:99px;text-transform:none;letter-spacing:0}
@@ -272,6 +276,19 @@ function grade(id, ok){
 
 /* ---------- pools ---------- */
 const lessonOK = x => !S.settings.lessons.length || S.settings.lessons.indexOf(x.lesson) >= 0;
+/* Scope: a quick shortcut that sets S.settings.lessons to a whole group of lesson
+   codes at once - "my classes" (Momente/A11/DUO material) or a CEFR level
+   (A1/A2/B1) drawn from the general CORE/SWISS vocabulary pack. Reuses the exact
+   same lessonOK filter everywhere - it's just a fast way to fill it in. */
+function scopeCodes(v){
+  if (v === 'all') return [];
+  if (v === 'class') return DATA.lessons.filter(l => l.class).map(l => l.code);
+  return DATA.lessons.filter(l => l.level === v).map(l => l.code);
+}
+function scopeIsOn(v){
+  const cur = S.settings.lessons.slice().sort().join(',');
+  return cur === scopeCodes(v).slice().sort().join(',');
+}
 const tricky = v => v.vc || v.sep || v.modal || v.irr.some(Boolean);
 const LESSON_OF = {};
 function tensesFor(v, t){
@@ -351,9 +368,36 @@ function prep(items){ // per-item random details
 }
 
 /* ---------- speech ---------- */
+// iOS has a long-standing bug where speechSynthesis stays silent inside a
+// home-screen-installed app (it works fine in a normal Safari tab) unless the
+// device's audio session is "unlocked" by playing something - any audio
+// element - during the very first tap. This primes it as early as possible
+// (the first tap anywhere, not just on a Listen button) so it's ready by the
+// time one is pressed. It's a real iOS limitation, not fully fixable from
+// script - if it's still silent afterwards, the phone's physical silent/mute
+// switch is the next thing to check (speechSynthesis respects it).
+let audioUnlocked = false;
+function unlockAudio(){
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  try {
+    const a = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
+    a.play().catch(() => {});
+  } catch(e) {}
+  try {
+    if ('speechSynthesis' in window) {
+      const u = new SpeechSynthesisUtterance(' '); u.volume = 0;
+      speechSynthesis.speak(u);
+    }
+  } catch(e) {}
+}
+document.addEventListener('touchend', unlockAudio, {once:true, capture:true});
+document.addEventListener('click', unlockAudio, {once:true, capture:true});
 function speak(text){
   try {
     if (!('speechSynthesis' in window)) return;
+    unlockAudio();
+    if (speechSynthesis.paused) speechSynthesis.resume();
     const u = new SpeechSynthesisUtterance(text); u.lang = 'de-DE'; u.rate = .9;
     const vs = speechSynthesis.getVoices().filter(v => /^de/i.test(v.lang));
     if (vs.length) u.voice = vs[0];
@@ -361,6 +405,22 @@ function speak(text){
   } catch(e) {}
 }
 const spk = (t, label) => `<button class="btn small ghost" data-act="say" data-t="${esc(t)}" aria-label="Listen">&#9654; ${esc(label || 'Listen')}</button>`;
+// The Listen buttons only ever use a voice already installed on this device -
+// there's no way for a web page to supply its own. No German voice installed
+// means Safari falls back to an English voice reading German text (wrong
+// accent) and iOS often just stays silent instead. Detect it and say so
+// plainly rather than leave it a mystery - voices load asynchronously, so
+// this re-checks once the browser reports them.
+let deVoiceState = null; // null = unknown yet, true/false once checked
+function checkVoices(){
+  if (!('speechSynthesis' in window)) { deVoiceState = false; render(); return; }
+  const vs = speechSynthesis.getVoices();
+  if (vs.length) { deVoiceState = vs.some(v => /^de/i.test(v.lang)); render(); }
+}
+if ('speechSynthesis' in window) {
+  checkVoices();
+  try { speechSynthesis.onvoiceschanged = checkVoices; } catch(e) {}
+}
 
 /* ---------- app state ---------- */
 let view = 'home', mode = null, run = null, conj = {q:'', f:'all', v:null}, exportText = '', resetArm = false, notice = '';
@@ -385,6 +445,7 @@ function render(){
   if (!S.settings.theme) document.documentElement.removeAttribute('data-theme');
   let h = `<header>${view !== 'home' && view !== 'run' ? '<button class="btn small" data-act="home">&larr; Home</button>' : ''}<h1>German Trainer<span class="sub">A2.1 &rarr; B2 &middot; progress syncs automatically</span></h1><button class="btn small ghost" data-act="theme">${S.settings.theme === 'dark' ? 'Light' : S.settings.theme === 'light' ? 'Auto' : 'Dark'}</button></header>`;
   if (!storageOK) h += `<div class="note">This browser is not saving progress (private window or blocked storage). Your progress lasts until you close the page. Use Progress &rarr; Backup to save it.</div>`;
+  if (deVoiceState === false) h += `<div class="note">No German voice is installed on this device, so Listen buttons will sound wrong or stay silent. iPhone: <b>Settings &rarr; Accessibility &rarr; Spoken Content &rarr; Voices &rarr; German</b> &rarr; download one. Mac: <b>System Settings &rarr; Accessibility &rarr; Spoken Content &rarr; System Voice &rarr; Manage Voices</b> &rarr; add German. This is a device setting, not something the app can fix.</div>`;
   if (dbTried && !fbUser && typeof navigator !== 'undefined' && navigator.onLine) h += `<div class="note">Sign in to sync progress across your devices. <button class="btn small" data-act="signin">Sign in with Google</button></div>`;
   else if (dbTried && fbUser && !dbReady) h += `<div class="note">Cloud sync isn’t reachable right now, so progress is only saving on this device. It will sync again once you’re back online.</div>`;
   if (notice) { h += `<div class="note">${esc(notice)}</div>`; notice = ''; }
@@ -405,6 +466,8 @@ function home(){
   const today = S.days[dayStr(dayNum())] || 0;
   const mixC = (() => { let d = 0, f = 0; const P = allPoolsForMix(); Object.keys(P).forEach(k => { const c = counts(P[k]); d += c.due; f += c.fresh; }); return {due:d, fresh:f}; })();
   let h = `<div class="stats"><div class="stat"><b>${streak()}</b><span>day streak</span></div><div class="stat"><b>${today}</b><span>answers today</span></div><div class="stat"><b>${Object.keys(S.cards).length}</b><span>items started</span></div></div>`;
+  const scopeLabel = scopeIsOn('all') ? 'Everything' : scopeIsOn('class') ? 'My classes' : scopeIsOn('A1') ? 'A1' : scopeIsOn('A2') ? 'A2' : scopeIsOn('B1') ? 'B1' : 'Custom selection';
+  h += `<div class="card" style="margin-bottom:12px"><div class="tag">Scope: ${scopeLabel}</div>` + chips([['all', 'Everything'], ['class', 'My classes'], ['A1', 'A1'], ['A2', 'A2'], ['B1', 'B1']], scopeIsOn, 'scope') + `<p class="muted" style="margin:6px 4px 0;font-size:13px">Applies to every mode below. "My classes" = your Momente A2.1 material; A1/A2/B1 = the general vocabulary pack.</p></div>`;
   h += `<button class="tile hero" data-act="open" data-m="mix" style="margin-bottom:12px"><b>Daily mix</b><span>${MODES.mix.sub}</span><i class="due">${mixC.due} due &middot; ${mixC.fresh} new available</i></button>`;
   h += '<div class="tiles">';
   ['art','plu','word','verb','order','gram'].forEach(m => {
@@ -431,6 +494,7 @@ function setup(){
     h += `<div class="tag">Seat guide</div>` + chips([['1', 'Guide on (verb seat marked)'], ['0', 'Guide off (harder)']], v => (v === '1') === !!S.settings.guide, 'guide');
   }
   if (mode !== 'order' && mode !== 'gram') {
+    h += `<div class="tag">Scope</div>` + chips([['all', 'Everything'], ['class', 'My classes'], ['A1', 'A1'], ['A2', 'A2'], ['B1', 'B1']], scopeIsOn, 'scope');
     h += `<div class="tag">Lessons</div>` + chips([['', 'All']].concat(DATA.lessons.map(l => [l.code, l.title])), v => v === '' ? !S.settings.lessons.length : S.settings.lessons.indexOf(v) >= 0, 'lesson');
   }
   if (mode === 'word') {
@@ -735,23 +799,36 @@ function conjDetail(v){
 
 /* ---------- cheat sheet ---------- */
 function cheatView(){
-  const C = [
-    ['Perfekt = a sandwich', `Helper (<b>haben</b> or <b>sein</b>) sits in slot 2, the Partizip II is the last slice at the end.<div class="sand">Ich habe gestern Pizza gegessen.\nEr ist nach Zürich gefahren.</div>Use <b>sein</b> for movement and change of state: gehen, fahren, kommen, bleiben, sein, werden, passieren, aufstehen. Almost everything else takes <b>haben</b>.`],
-    ['war / hatte = the express lane', `For <b>sein</b>, <b>haben</b> and the modals, people skip the sandwich and use the short past: ich <b>war</b>, ich <b>hatte</b>, ich <b>konnte</b>, ich <b>musste</b>, ich <b>wollte</b>. For all other verbs, speak in Perfekt.`],
-    ['weil / dass / wenn = the last wagon', `After weil, dass and wenn the conjugated verb is sent to the last wagon of the clause.<div class="sand">Ich lerne Deutsch, weil ich in der Schweiz arbeite.\nIch denke, dass er heute kommt.</div>`],
-    ['Word order: the cinema row', `Seat 2 is reserved for the verb. Whatever comes first takes seat 1, so the subject may end up in seat 3.<div class="sand">Ich | fahre | morgen | nach Zürich.\nMorgen | fahre | ich | nach Zürich.\nAm Freitag | bin | ich | nach Madrid | geflogen.</div>Perfekt, modals and separable verbs: the second verb part takes the <b>very last seat</b>. Yes/no questions: verb in seat 1 (<i>Fährst du morgen?</i>). W-questions: question word in seat 1, verb in seat 2 (<i>Wann fährst du?</i>).`],
-    ['After the verb: Time, Manner, Place', `When? then how? then where? Think <b>Te-Mo-Lo</b>.<div class="sand">Ich fahre morgen mit dem Zug nach Zürich.\n      (when)  (how)      (where)</div>`],
-    ['Case coat check: three questions', `1) <b>The doer?</b> Nominative, nothing changes. 2) <b>Wen oder was?</b> Accusative: only der becomes den (ein becomes einen). 3) <b>A dative word before it?</b> mit, bei, aus, nach, seit, von, zu: dem / der / dem / den (+n on plurals). Also dative: helfen, danken, gehören, and the receiver of geben or schenken.`],
-    ['Akkusativ: only the masculine changes', `der &rarr; <b>den</b>, ein &rarr; <b>einen</b>, kein &rarr; <b>keinen</b>. Die, das and the plural stay as they are. Ask: <i>Wen oder was?</i><div class="sand">Ich esse den Apfel.  Ich kaufe die Tasche.  Ich habe das Auto.</div>`],
-    ['Dativ triggers', `<b>mit, bei, aus, nach, seit, von, zu</b> always take the dative: der &rarr; dem, die &rarr; der, das &rarr; dem, plural &rarr; den (+n). Ask: <i>Wem?</i><div class="sand">mit dem Bus · aus der Schweiz · bei den Eltern</div>`],
-    ['Akkusativ triggers', `<b>für, durch, gegen, ohne, um, bis</b> always take the accusative.`],
-    ['Time words', `<b>am</b> + day or part of the day (am Montag, am Abend) &middot; <b>um</b> + clock time (um 8 Uhr) &middot; <b>im</b> + month or season (im Mai, im Sommer).<div class="sand">letzten Monat · letztes Jahr · letzte Woche\nnächsten Monat · nächstes Jahr · nächste Woche\njeden Tag · jedes Jahr · jede Woche</div>`],
-    ['Gender hints', `<b>die</b>: -ung, -heit, -keit, -schaft, -ion, -tät, -ei, -ur &middot; <b>das</b>: -chen, -lein, -um, -ment &middot; <b>der</b>: -ling, -ismus, days, months, seasons. Exceptions exist, and the Articles drill flags them.`],
-    ['The doorway test: an, auf, hinter, in, neben, über, unter, vor, zwischen', `These nine prepositions can take Akkusativ or Dativ &mdash; it depends on whether something is moving. <b>Wohin?</b> (through the doorway, movement) = Akkusativ. <b>Wo?</b> (already on the other side, staying put) = Dativ.<div class="sand">Ich gehe in die Werkstatt. (wohin? &rarr; Akk.)\nIch bin in der Werkstatt. (wo? &rarr; Dativ)\nEr stellt das Buch auf den Tisch. (wohin?)\nDas Buch liegt auf dem Tisch. (wo?)</div>`],
-    ['denn vs. deshalb', `<b>denn</b> = "because" &mdash; behaves like <i>und</i>: it does NOT change word order, the next clause keeps its normal subject-verb order.<div class="sand">Ich bleibe zu Hause, denn ich bin krank.</div><b>deshalb</b> = "so, therefore" &mdash; it takes seat 1 itself, so the verb jumps right after it.<div class="sand">Ich bin krank, deshalb bleibe ich zu Hause.</div>`]
+  const SECTIONS = [
+    ['tense', 'Tenses', [
+      ['Perfekt = a sandwich', `Helper (<b>haben</b> or <b>sein</b>) sits in slot 2, the Partizip II is the last slice at the end.<div class="sand">Ich habe gestern Pizza gegessen.\nEr ist nach Zürich gefahren.</div>Use <b>sein</b> for movement and change of state: gehen, fahren, kommen, bleiben, sein, werden, passieren, aufstehen. Almost everything else takes <b>haben</b>.`],
+      ['war / hatte = the express lane', `For <b>sein</b>, <b>haben</b> and the modals, people skip the sandwich and use the short past: ich <b>war</b>, ich <b>hatte</b>, ich <b>konnte</b>, ich <b>musste</b>, ich <b>wollte</b>. For all other verbs, speak in Perfekt.`]
+    ]],
+    ['order', 'Word order &amp; connectors', [
+      ['Word order: the cinema row', `Seat 2 is reserved for the verb. Whatever comes first takes seat 1, so the subject may end up in seat 3.<div class="sand">Ich | fahre | morgen | nach Zürich.\nMorgen | fahre | ich | nach Zürich.\nAm Freitag | bin | ich | nach Madrid | geflogen.</div>Perfekt, modals and separable verbs: the second verb part takes the <b>very last seat</b>. Yes/no questions: verb in seat 1 (<i>Fährst du morgen?</i>). W-questions: question word in seat 1, verb in seat 2 (<i>Wann fährst du?</i>).`],
+      ['After the verb: Time, Manner, Place', `When? then how? then where? Think <b>Te-Mo-Lo</b>.<div class="sand">Ich fahre morgen mit dem Zug nach Zürich.\n      (when)  (how)      (where)</div>`],
+      ['weil / dass / wenn = the last wagon', `After weil, dass and wenn the conjugated verb is sent to the last wagon of the clause.<div class="sand">Ich lerne Deutsch, weil ich in der Schweiz arbeite.\nIch denke, dass er heute kommt.</div>`],
+      ['denn vs. deshalb', `<b>denn</b> = "because" &mdash; behaves like <i>und</i>: it does NOT change word order, the next clause keeps its normal subject-verb order.<div class="sand">Ich bleibe zu Hause, denn ich bin krank.</div><b>deshalb</b> = "so, therefore" &mdash; it takes seat 1 itself, so the verb jumps right after it.<div class="sand">Ich bin krank, deshalb bleibe ich zu Hause.</div>`]
+    ]],
+    ['case', 'Cases &amp; prepositions', [
+      ['Case coat check: three questions', `1) <b>The doer?</b> Nominative, nothing changes. 2) <b>Wen oder was?</b> Accusative: only der becomes den (ein becomes einen). 3) <b>A dative word before it?</b> mit, bei, aus, nach, seit, von, zu: dem / der / dem / den (+n on plurals). Also dative: helfen, danken, gehören, and the receiver of geben or schenken.`],
+      ['Akkusativ: only the masculine changes', `der &rarr; <b>den</b>, ein &rarr; <b>einen</b>, kein &rarr; <b>keinen</b>. Die, das and the plural stay as they are. Ask: <i>Wen oder was?</i><div class="sand">Ich esse den Apfel.  Ich kaufe die Tasche.  Ich habe das Auto.</div>`],
+      ['Dativ triggers', `<b>mit, bei, aus, nach, seit, von, zu</b> always take the dative: der &rarr; dem, die &rarr; der, das &rarr; dem, plural &rarr; den (+n). Ask: <i>Wem?</i><div class="sand">mit dem Bus · aus der Schweiz · bei den Eltern</div>`],
+      ['Akkusativ triggers', `<b>für, durch, gegen, ohne, um, bis</b> always take the accusative.`],
+      ['The doorway test: an, auf, hinter, in, neben, über, unter, vor, zwischen', `These nine prepositions can take Akkusativ or Dativ &mdash; it depends on whether something is moving. <b>Wohin?</b> (through the doorway, movement) = Akkusativ. <b>Wo?</b> (already on the other side, staying put) = Dativ.<div class="sand">Ich gehe in die Werkstatt. (wohin? &rarr; Akk.)\nIch bin in der Werkstatt. (wo? &rarr; Dativ)\nEr stellt das Buch auf den Tisch. (wohin?)\nDas Buch liegt auf dem Tisch. (wo?)</div>`]
+    ]],
+    ['other', 'Time &amp; gender', [
+      ['Time words', `<b>am</b> + day or part of the day (am Montag, am Abend) &middot; <b>um</b> + clock time (um 8 Uhr) &middot; <b>im</b> + month or season (im Mai, im Sommer).<div class="sand">letzten Monat · letztes Jahr · letzte Woche\nnächsten Monat · nächstes Jahr · nächste Woche\njeden Tag · jedes Jahr · jede Woche</div>`],
+      ['Gender hints', `<b>die</b>: -ung, -heit, -keit, -schaft, -ion, -tät, -ei, -ur &middot; <b>das</b>: -chen, -lein, -um, -ment &middot; <b>der</b>: -ling, -ismus, days, months, seasons. Exceptions exist, and the Articles drill flags them.`]
+    ]]
   ];
-  return '<div class="card"><h2>Cheat sheet</h2><p class="muted" style="margin-top:0">Short reminders that match your class. Full rules stay in your GoodNotes.</p></div>' +
-    C.map(c => `<div class="card"><h2>${c[0]}</h2><div>${c[1]}</div></div>`).join('');
+  let h = '<div class="card"><h2>Cheat sheet</h2><p class="muted" style="margin-top:0">Short reminders that match your class. Full rules stay in your GoodNotes.</p>'
+    + '<div class="flex" style="flex-wrap:wrap;gap:8px;margin-top:6px">' + SECTIONS.map(s => `<a class="chip" href="#cs-${s[0]}">${s[1]}</a>`).join('') + '</div></div>';
+  SECTIONS.forEach(s => {
+    h += `<h3 id="cs-${s[0]}" style="margin:20px 4px 8px;color:var(--muted);font-size:14px;text-transform:uppercase;letter-spacing:.4px">${s[1]}</h3>`;
+    h += s[2].map(c => `<div class="card"><h2>${c[0]}</h2><div>${c[1]}</div></div>`).join('');
+  });
+  return h;
 }
 
 /* ---------- progress ---------- */
@@ -816,6 +893,7 @@ app.addEventListener('click', e => {
       else { const i = S.settings.lessons.indexOf(v); if (i >= 0) S.settings.lessons.splice(i, 1); else S.settings.lessons.push(v); }
       save(); render(); break;
     }
+    case 'scope': S.settings.lessons = scopeCodes(v); save(); render(); break;
     case 'wdir': S.settings.wdir = v; save(); render(); break;
     case 'listen': S.settings.listen = v === '1'; save(); render(); break;
     case 'tense': S.settings.tense = v; save(); render(); break;
